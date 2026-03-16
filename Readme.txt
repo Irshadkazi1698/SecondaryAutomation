@@ -1,0 +1,1 @@
+python -m PyInstaller --onefile --icon=icon.png --noconsole GUI.py
