@@ -11,7 +11,6 @@ It validates alignment between Banner and Counts files, generates comparison out
 Primary application title:
 - `Ipsos Banner Validation Tool` (PyQt5 desktop GUI)
 
----
 
 ## 2. Core Functional Scope
 
@@ -24,7 +23,6 @@ The tool performs the following major tasks:
 5. Run sanity check module and append `Sanity Check` sheet
 6. Optionally generate `Grid Tables` sheet
 
----
 
 ## 3. UI Specification
 
@@ -96,7 +94,6 @@ Shown via `Custom Details`:
 - 93-98%: Optional grid generation
 - 100%: Completed
 
----
 
 ## 4. Functional Workflow (Execution Pipeline)
 
@@ -110,7 +107,7 @@ Shown via `Custom Details`:
 6. If enabled, run grid table generation.
 7. Final logs and progress update in GUI.
 
----
+
 
 ## 5. Input Specifications
 
@@ -128,7 +125,7 @@ Optional input:
 
 Output folder must be writable.
 
----
+
 
 ## 6. Output Specifications
 
@@ -143,7 +140,6 @@ Main generated artifacts:
   - `Sanity Check` sheet appended
   - optional `Grid Tables` sheet appended
 
----
 
 ## 7. Module Architecture
 
@@ -189,7 +185,6 @@ Main generated artifacts:
   - CSV counts cleanup and transformation
   - copies cleaned input files into `Input` folder
 
----
 
 ## 8. Technology Stack
 
@@ -221,7 +216,6 @@ Main generated artifacts:
   - `python -m PyInstaller --onefile --icon=icon.png --noconsole GUI.py`
   - Produces executable artifacts in `dist/` (for example `GUI.exe` / `SV Tool.exe`)
 
----
 
 ## 9. Dependency List
 
@@ -235,7 +229,6 @@ From `requirements.txt`:
 Note:
 - `PyQt5` is used by the GUI and should also be available in the runtime environment.
 
----
 
 ## 10. Run Instructions
 
@@ -249,7 +242,6 @@ Note:
 ### 10.2 Run packaged executable
 - Use generated exe from `dist/` (for example `GUI.exe` or `SV Tool.exe`)
 
----
 
 ## 11. Error Handling & Validation Design
 
@@ -264,7 +256,7 @@ Validation checks are implemented in processing modules for:
 
 Errors are surfaced to logs and/or stop execution when critical.
 
----
+
 
 ## 12. Current Constraints / Assumptions
 
@@ -274,7 +266,7 @@ Errors are surfaced to logs and/or stop execution when critical.
 - Matching and alignment quality depends on naming consistency and fuzzy matching thresholds.
 - Some output file names are fixed by design (`Final Comparison`, `Matched_Variables`, etc.).
 
----
+
 
 ## 13. Repository Artifacts (High-level)
 
@@ -284,7 +276,6 @@ Errors are surfaced to logs and/or stop execution when critical.
 - Build artifacts: `build/`, `dist/`
 - Executables: `SV Tool.exe`, `dist/GUI.exe`
 
----
 
 ## 14. Recommended Documentation Next Additions
 
