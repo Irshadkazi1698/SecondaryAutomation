@@ -235,6 +235,24 @@ def align_counts_with_banners(banners_formatting, counts_formatting, key_col, ba
                 return row # Return the entire row if found.
         return None # Return nothing if no 'BASE' row is found.
 
+    # Resolve readable base label text and prevent values like "nan".
+    def resolve_base_label_text(raw_base_text, banner_base_label):
+        if pd.notna(raw_base_text):
+            cleaned = str(raw_base_text).strip()
+            if cleaned and cleaned.lower() != 'nan':
+                return cleaned
+
+        # Fallback 1: use existing banner-side base text after "Base:"
+        if isinstance(banner_base_label, str):
+            banner_clean = banner_base_label.strip()
+            if banner_clean.lower().startswith('base:'):
+                candidate = banner_clean.split(':', 1)[1].strip()
+                if candidate and candidate.lower() != 'nan':
+                    return candidate
+
+        # Fallback 2: stable default
+        return "Total Answering"
+
     # Now, we iterate through each row in the processed banners data.
     for _, banner_row in banners_formatting.iterrows():
         banner_label = banner_row[key_col] # Get the label from the current banner row.
@@ -249,8 +267,9 @@ def align_counts_with_banners(banners_formatting, counts_formatting, key_col, ba
             if base_values_list: # Check if we still have base text values available.
                 # Take the next available base text from our list.
                 base_text_from_list = base_values_list.pop(0)
-                # Construct the desired label format.
-                new_label_value = f"Base: {base_text_from_list}"
+                # Construct the desired label format with safe fallback.
+                resolved_base_text = resolve_base_label_text(base_text_from_list, banner_label)
+                new_label_value = f"Base: {resolved_base_text}"
                 
                 # *** NOW, FIND THE ACTUAL COUNT DATA FOR THE BASE ROW ***
                 base_count_row = find_base_count_data()
@@ -266,9 +285,18 @@ def align_counts_with_banners(banners_formatting, counts_formatting, key_col, ba
                     new_row = pd.Series([new_label_value] + [np.nan] * (len(counts_formatting.columns) - 1), index=counts_formatting.columns)
                     aligned_counts.append(new_row)
             else:
-                # If we've run out of base text values, we'll just add an empty row as a fallback and print a warning.
-                print("Warning: Ran out of values in 'Base Text' list while processing a base label.")
-                aligned_counts.append(pd.Series([np.nan] * len(counts_formatting.columns), index=counts_formatting.columns))
+                # If base text isn't available, still write a meaningful base label.
+                print("Warning: Base Text not available while processing a base label. Using fallback text.")
+                fallback_text = resolve_base_label_text(None, banner_label)
+                new_label_value = f"Base: {fallback_text}"
+                base_count_row = find_base_count_data()
+                if base_count_row is not None:
+                    new_row = base_count_row.copy()
+                    new_row[key_col] = new_label_value
+                    aligned_counts.append(new_row)
+                else:
+                    new_row = pd.Series([new_label_value] + [np.nan] * (len(counts_formatting.columns) - 1), index=counts_formatting.columns)
+                    aligned_counts.append(new_row)
                 
         # For all other, non-base labels, we proceed with the standard fuzzy matching.
         else:
@@ -312,7 +340,7 @@ def populate_comparison_sheet(file_path, counts_df, banners_df_processed, banner
                 if score >= 97:
                     # Store the starting row index of the count table and its corresponding Matched_Label.
                     count_idx_to_label_map[fetch_idx[0][0]] = matched_label
-
+  
     # Now, we iterate through each identified table block to place its data.
     for i, (fetch_idx, target_idx) in enumerate(common_indices):
         if not fetch_idx or not target_idx: continue # Skip if we don't have valid indices for both count and banner.
@@ -332,7 +360,7 @@ def populate_comparison_sheet(file_path, counts_df, banners_df_processed, banner
             
             # For the counts data used in the logic, we take a slice from the original counts DataFrame.
             counts_table_df = counts_df.iloc[fetch_idx[0][0]:fetch_idx[0][1], 1:4]
-
+            
             # --- For WRITING the banner side (Columns B, C, D), we MUST use the ORIGINAL banner data ---
             # This ensures we are writing the exact content as it appeared in the source banners file.
             banners_table_df_for_writing = banners_df_original.iloc[target_idx[0][0]-2:target_idx[0][1], 1:4]
@@ -374,13 +402,34 @@ def populate_comparison_sheet(file_path, counts_df, banners_df_processed, banner
                 sheet.cell(row=k, column=6, value=row_data[0]) # Write label to Column F (Label.1).
                 sheet.cell(row=k, column=7, value=row_data[1]) # Write count to Column G (Count.1).
                 percent_val = row_data[2] # Get the percentage value.
+                cell_h = sheet.cell(row=k, column=8) # Target cell for percentage in Column H.
                 if pd.notna(percent_val):
-                    cell_h = sheet.cell(row=k, column=8) # Target cell for percentage in Column H.
-                    cell_h.value = float(percent_val) # Write the percentage value.
-                    cell_h.number_format = percentage_format # Apply percentage formatting.
+                    # Keep placeholder markers like '-' without crashing the remaining rows in the table.
+                    if isinstance(percent_val, str):
+                        cleaned_percent = percent_val.strip()
+                        if cleaned_percent in {"", "-"}:
+                            cell_h.value = cleaned_percent if cleaned_percent == "-" else None
+                        elif "%" in cleaned_percent:
+                            try:
+                                cell_h.value = float(cleaned_percent.replace("%", "")) / 100
+                                cell_h.number_format = percentage_format
+                            except ValueError:
+                                cell_h.value = cleaned_percent
+                        else:
+                            try:
+                                cell_h.value = float(cleaned_percent)
+                                cell_h.number_format = percentage_format
+                            except ValueError:
+                                cell_h.value = cleaned_percent
+                    elif isinstance(percent_val, (int, float)):
+                        cell_h.value = float(percent_val)
+                        cell_h.number_format = percentage_format
+                    else:
+                        cell_h.value = percent_val
                 else:
-                    sheet.cell(row=k, column=8).value = None # Set to None if missing.
-
+                    cell_h.value = None # Set to None if missing.
+            
+            
         except Exception as e:
             # If any error occurs during processing a table, print an error message.
             print(f"Error processing and pasting table index {i}: {e}")
@@ -1055,5 +1104,19 @@ def main(InputDir,OutputDir,CountFileName,BannerFileName,MatchFileName,FinalComp
         traceback.print_exc()
         sys.exit(1) # Exit the script with an error code
 # This ensures that the main() function is called only when the script is executed directly.
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
+
+
+
+# InputDir = r'C:\Users\Irshad.kazi\OneDrive - Ipsos\Desktop\Secondary QC Automation\SV Debug\Input'
+# OutputDir = r'C:\Users\Irshad.kazi\OneDrive - Ipsos\Desktop\Secondary QC Automation\SV Debug\Output'
+# CountFileName = 'Counts'
+# BannerFileName = 'Banners'
+# MatchFileName = 'Matched_Variables'
+# FinalComparisonFileName = 'Final Comparison'
+# SummaryFileName = 'Summary'
+# variablePrefix = 'VARIABLE_NAME = '
+
+
+# main(InputDir,OutputDir,CountFileName,BannerFileName,MatchFileName,FinalComparisonFileName,SummaryFileName,variablePrefix)
