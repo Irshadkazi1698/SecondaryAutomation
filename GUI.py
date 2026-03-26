@@ -28,7 +28,7 @@ from PyQt5.QtWidgets import (
 import main
 from SanityCheckModule.SanityChecking import createSanityCheck
 from SanityCheckModule.SanityCheckingTabPlan2 import createSanityCheck as createSanityCheckTabPlan2
-from GridTable.CreateGridTables import GenerateGridTables
+from GridTable.GridComparison import combiningAndComparingGridTables
 
 
 class WorkThread(QThread):
@@ -48,8 +48,6 @@ class WorkThread(QThread):
         label_index,
         base_index,
         sheet_name,
-        grid_enable,
-        grid_counts_file,
     ):
         super().__init__()
         self.input_dir = input_dir
@@ -63,8 +61,6 @@ class WorkThread(QThread):
         self.label_index = label_index
         self.base_index = base_index
         self.sheet_name = sheet_name
-        self.grid_enable = grid_enable
-        self.grid_counts_file = grid_counts_file
 
     def run(self):
         try:
@@ -115,15 +111,12 @@ class WorkThread(QThread):
             self.progress_value.emit(90)
             self.progress.emit("Sanity Check completed.")
 
-            if self.grid_enable:
-                self.progress.emit("Generating Grid Tables...")
-                self.progress.emit("This may take a few moments depending on the size of the data.")
-                self.progress_value.emit(93)
-                grid_counts_path = os.path.join(self.input_dir, f"{self.grid_counts_file}.xlsx")
-                grid_output_path = os.path.join(self.output_dir, "Final Comparison.xlsx")
-                GenerateGridTables(grid_counts_path, grid_output_path)
-                self.progress_value.emit(98)
-                self.progress.emit("Grid Tables generated successfully.")
+            self.progress.emit("Generating Grid Comparison...")
+            self.progress_value.emit(93)
+            banner_path = os.path.join(self.input_dir, f"{self.banner_file}.xlsx")
+            combiningAndComparingGridTables(banner_path, self.output_dir)
+            self.progress_value.emit(98)
+            self.progress.emit("Grid Comparison generated successfully.")
 
             self.progress_value.emit(100)
             self.progress.emit("All steps completed.")
@@ -172,7 +165,7 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Ipsos Banner Validation Tool")
+        self.setWindowTitle("Ipsos DP Quality Check")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
         self._configure_window_for_screen()
 
@@ -195,7 +188,7 @@ class MainWindow(QWidget):
         self.setMinimumSize(min(900, width), min(650, height))
 
     def _build_ui(self):
-        title = QLabel("Ipsos Banner Validation Tool")
+        title = QLabel("Ipsos DP Quality Check")
         title.setObjectName("titleLabel")
         title.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -251,28 +244,6 @@ class MainWindow(QWidget):
         tabplan_layout.addWidget(self.custom_btn)
         tabplan_group.setLayout(tabplan_layout)
 
-        grid_group = QGroupBox("Grid Tables (Optional)")
-        grid_layout = QVBoxLayout()
-        self.grid_enable_check = QCheckBox("Enable Grid Tables Generation")
-        self.grid_enable_check.stateChanged.connect(self._on_grid_enable_changed)
-
-        self.grid_counts_edit, grid_counts_row = self._file_row(
-            "Grid Counts file", self.grid_counts_file_name
-        )
-
-        self.grid_counts_edit.setEnabled(False)
-
-        grid_form = QFormLayout()
-        grid_form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        grid_form.setHorizontalSpacing(14)
-        grid_form.setVerticalSpacing(10)
-        grid_form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        grid_form.addRow("Grid Counts file", grid_counts_row)
-
-        grid_layout.addWidget(self.grid_enable_check)
-        grid_layout.addLayout(grid_form)
-        grid_group.setLayout(grid_layout)
-
         self.output = QTextEdit()
         self.output.setReadOnly(True)
         self.output.setPlaceholderText("Execution logs will appear here...")
@@ -299,7 +270,6 @@ class MainWindow(QWidget):
         content_layout.addWidget(title)
         content_layout.addWidget(file_group)
         content_layout.addWidget(tabplan_group)
-        content_layout.addWidget(grid_group)
         content_layout.addWidget(self.progress_bar)
         content_layout.addWidget(self.output, 1)
         content_layout.addLayout(bottom_row)
@@ -403,17 +373,6 @@ class MainWindow(QWidget):
         choice = self.tabplan_choice_combo.currentData()
         self.custom_btn.setEnabled(choice == 3)
 
-    def _on_grid_enable_changed(self):
-        enabled = self.grid_enable_check.isChecked()
-        self.grid_counts_edit.setEnabled(enabled)
-
-    def grid_counts_file_name(self):
-        clean_name = self._pick_file_name_without_extension(
-            "Select Grid Counts File", "Excel Files (*.xlsx *.xls)"
-        )
-        if clean_name:
-            self.grid_counts_edit.setText(clean_name)
-
     def open_custom_dialog(self):
         dialog = CustomTabPlanDialog(self)
 
@@ -435,15 +394,9 @@ class MainWindow(QWidget):
             tabplan_choice = int(self.tabplan_choice_combo.currentData())
             banner_file = self.banner_edit.text().strip()
             count_file = self.count_edit.text().strip()
-            grid_enable = self.grid_enable_check.isChecked()
-            grid_counts_file = self.grid_counts_edit.text().strip() if grid_enable else ""
 
             if not input_dir or not output_dir:
                 self.output.append("Please select both Input and Output directories.")
-                return
-
-            if grid_enable and not grid_counts_file:
-                self.output.append("Please select Grid Counts file.")
                 return
 
             question_index = None
@@ -484,8 +437,6 @@ class MainWindow(QWidget):
                 label_index,
                 base_index,
                 sheet_name,
-                grid_enable,
-                grid_counts_file,
             )
             self.worker.progress.connect(self.update_output)
             self.worker.progress_value.connect(self.update_progress)

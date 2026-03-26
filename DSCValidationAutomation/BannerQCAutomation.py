@@ -71,17 +71,30 @@ def create_and_prepare_output_file(source_file_path, output_file_path, sheet_nam
     """
     print(f"Getting the output file ready at: '{output_file_path}'...")
     
+    # Ensure the output directory exists before creating any files.
+    output_dir = os.path.dirname(output_file_path)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+        print(f"Created output directory: {output_dir}")
+    
     # First, let's check if the output file already exists. If not, we create a new one.
     if not os.path.exists(output_file_path):
-        wb = Workbook() # Create a new workbook.
-        ws = wb.active # Get the active sheet.
-        ws.title = sheet_name # Name it 'Tables'.
-        ws.sheet_view.showGridLines = True # Make sure the grid lines are visible.
-        wb.save(output_file_path) # Save the newly created file.
+        try:
+            wb = Workbook() # Create a new workbook.
+            ws = wb.active # Get the active sheet.
+            ws.title = sheet_name # Name it 'Tables'.
+            ws.sheet_view.showGridLines = True # Make sure the grid lines are visible.
+            wb.save(output_file_path) # Save the newly created file.
+            print(f"Created new workbook at: {output_file_path}")
+        except Exception as e:
+            raise IOError(f"Failed to create workbook at '{output_file_path}': {e}")
 
     # Now, we open both the output file (where we'll write) and the source file (for copying)
     # We load the source file twice: once to get the actual data values, and once to get the styles.
-    dest_wb = load_workbook(output_file_path) # Open the destination workbook.
+    try:
+        dest_wb = load_workbook(output_file_path) # Open the destination workbook.
+    except Exception as e:
+        raise IOError(f"Failed to load workbook from '{output_file_path}'. The file may be corrupted or empty. Error: {e}")
     dest_ws = dest_wb[sheet_name] # Get the 'Tables' sheet from the destination.
     source_wb = load_workbook(source_file_path, data_only=True) # Load source for data values.
     source_ws = source_wb[sheet_name] # Get the 'Tables' sheet from the source for data.
