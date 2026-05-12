@@ -15,8 +15,13 @@ def checkGridTableAvailability(BannerFile):
     for col in griddf.columns:
         griddf[col] = griddf[col].astype('str')
 
+    SummaryList = []
+    for i in griddf['col1'].str.contains('Summary'):
+        SummaryList.append(i)
 
-    return len(list(griddf[griddf['col0'].str.contains('Summary')].col0))
+    print(len(SummaryList))
+
+    return len(SummaryList)
        
 def getNoofColumns(BannerFile):
 
@@ -26,12 +31,13 @@ def getNoofColumns(BannerFile):
 
 def getGridTableList(BannerFile):
 
-    colNames = ['col' + str(colNo)  for colNo in range(0,23)]
+    colNames = ['col' + str(colNo)  for colNo in range(0,getNoofColumns(BannerFile))]
         
     griddf = pd.read_excel(BannerFile,sheet_name='Grid',header=None,names=colNames)
 
     for col in griddf.columns:
         griddf[col] = griddf[col].astype('str')
+
 
     gridQuestions = []
     for questions in griddf[griddf['col0'].str.contains('Summary')].col0:
@@ -74,9 +80,11 @@ def convertTablestoStandard(BannerFile):
         
         for question in  questionsList:
             question_index = tables.index[tables['Title'].str.contains(question)]
+
             start_index = question_index[4]
             end_index = question_index[-1]
-
+            print(start_index)
+            print(end_index)
             df = tables.iloc[start_index:end_index,:4]
 
             Grid_df = pd.concat([Grid_df,df])
@@ -122,7 +130,7 @@ def convertTablestoStandard(BannerFile):
 
         Grid_df['Key'] = keyList
 
-        # Grid_df.to_excel("Tables_Grid.xlsx",index=False)
+        Grid_df.to_excel("Tables_Grid.xlsx",index=False)
 
         return Grid_df
 
@@ -210,7 +218,7 @@ def convertGridstoStandard(BannerFile):
 
     Grid_df['Key'] = keyList
 
-    # Grid_df.to_excel('Grid_tables.xlsx',index=False)
+    Grid_df.to_excel('Grid_tables.xlsx',index=False)
 
     return Grid_df
 
@@ -224,13 +232,13 @@ def combiningAndComparingGridTables(BannerFile,OuputDir):
 
         Combined_df = pd.merge(GridTables,Tables,on = 'Key',how='inner')
 
-        Cleaned_Combined_df = Combined_df[['Title_x','Statements_x','Label_x','GridsCounts','Count']]
+        Cleaned_Combined_df = Combined_df[['Title_x','Statements_x','Label_x','GridsCounts','TablesCount']]
 
         Result = []
         for cell in range(0,Cleaned_Combined_df.shape[0]):
-            if Cleaned_Combined_df['GridsCounts'][cell] == Cleaned_Combined_df['Count'][cell]:
+            if Cleaned_Combined_df['GridsCounts'][cell] == Cleaned_Combined_df['TablesCount'][cell]:
                 Result.append('True')
-            if Cleaned_Combined_df['GridsCounts'][cell] != Cleaned_Combined_df['Count'][cell]:
+            if Cleaned_Combined_df['GridsCounts'][cell] != Cleaned_Combined_df['TablesCount'][cell]:
                 Result.append('False')
 
         Cleaned_Combined_df['Result'] = Result
@@ -261,3 +269,10 @@ def combiningAndComparingGridTables(BannerFile,OuputDir):
                         cell.fill = light_red    
 
         wb.save(FileDumpDir)
+
+Banner = r'C:\Users\Irshad.kazi\OneDrive - Ipsos\Desktop\Secondary QC Automation\_Versions_\QC - Automation V9\Input\Banners.xlsx'
+OutputDir = r'C:\Users\Irshad.kazi\OneDrive - Ipsos\Desktop\Secondary QC Automation\_Versions_\QC - Automation V9\Output'
+# combiningAndComparingGridTables(Banner,OutputDir)
+
+convertGridstoStandard(Banner)
+convertTablestoStandard(Banner)
