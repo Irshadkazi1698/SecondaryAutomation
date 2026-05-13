@@ -1,10 +1,28 @@
 Unmatched Titles Summary
 ========================
 
+Authorship
+Topics Published
+Sources
+Leader_Trust_Info
+Leader_Trust_Info
+Leader_Trust_Info
+Target_Audience
+Target_Audience
+Target_Audience
+Target_Audience
+Target_Audience
+Target_Audience
+Target_Audience
+Brand_Aware
+Brand_Engage
+Brand_Trust
+Brand_Trust
+Brand_Trust
 
 Summary Statistics
 ==================
-Total Entries: 297
-Filled Entries: 297
-Blank Entries: 0
-Percentage of Tables Matched: 100.00%
+Total Entries: 116
+Filled Entries: 98
+Blank Entries: 18
+Percentage of Tables Matched: 84.48%

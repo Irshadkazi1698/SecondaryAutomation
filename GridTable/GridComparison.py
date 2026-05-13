@@ -230,22 +230,22 @@ def combiningAndComparingGridTables(BannerFile,OuputDir):
         GridTables = convertGridstoStandard(BannerFile)
         Tables = convertTablestoStandard(BannerFile)
 
-        Combined_df = pd.merge(GridTables,Tables,on = 'Key',how='inner')
 
-        Cleaned_Combined_df = Combined_df[['Title_x','Statements_x','Label_x','GridsCounts','TablesCount']]
+        Combined_df = pd.merge(Tables,GridTables,on = 'Key',how='inner')
+
+        Cleaned_Combined_df = Combined_df[['Title_x','Statements_x','Label_x','GridsCounts','Count','Key']]
 
         Result = []
         for cell in range(0,Cleaned_Combined_df.shape[0]):
-            if Cleaned_Combined_df['GridsCounts'][cell] == Cleaned_Combined_df['TablesCount'][cell]:
+            if Cleaned_Combined_df['GridsCounts'][cell] == Cleaned_Combined_df['Count'][cell]:
                 Result.append('True')
-            if Cleaned_Combined_df['GridsCounts'][cell] != Cleaned_Combined_df['TablesCount'][cell]:
+            if Cleaned_Combined_df['GridsCounts'][cell] != Cleaned_Combined_df['Count'][cell]:
                 Result.append('False')
 
         Cleaned_Combined_df['Result'] = Result
             
         FileDumpDir = os.path.join(OuputDir,"Final Comparison.xlsx")
         
-        # Cleaned_Combined_df.to_excel(FileDumpDir,index=False)
         print(f"The final comparison file is dumped at the location {FileDumpDir}\n")
         wb = load_workbook(FileDumpDir)
         
@@ -260,7 +260,7 @@ def combiningAndComparingGridTables(BannerFile,OuputDir):
         for r in dataframe_to_rows(Cleaned_Combined_df, index=False, header=True):
             ws.append(r)
 
-    # Apply colors
+
         for row in ws.iter_rows():   
             for cell in row:
                 if cell.value == "True":
@@ -270,9 +270,9 @@ def combiningAndComparingGridTables(BannerFile,OuputDir):
 
         wb.save(FileDumpDir)
 
-Banner = r'C:\Users\Irshad.kazi\OneDrive - Ipsos\Desktop\Secondary QC Automation\_Versions_\QC - Automation V9\Input\Banners.xlsx'
-OutputDir = r'C:\Users\Irshad.kazi\OneDrive - Ipsos\Desktop\Secondary QC Automation\_Versions_\QC - Automation V9\Output'
+# Banner = r'C:\Users\Irshad.kazi\OneDrive - Ipsos\Desktop\Secondary QC Automation\_Versions_\QC - Automation V9\Input\Banners.xlsx'
+# OutputDir = r'C:\Users\Irshad.kazi\OneDrive - Ipsos\Desktop\Secondary QC Automation\_Versions_\QC - Automation V9\Output'
 # combiningAndComparingGridTables(Banner,OutputDir)
 
-convertGridstoStandard(Banner)
-convertTablestoStandard(Banner)
+# convertGridstoStandard(Banner)
+# convertTablestoStandard(Banner)
